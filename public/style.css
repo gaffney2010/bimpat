@@ -22,10 +22,17 @@ h1 {
 }
 
 #grid {
-  display: grid;
-  grid-template-columns: repeat(6, 48px);
-  grid-template-rows: repeat(6, 48px);
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  background: rgba(173, 216, 230, 0.15);
+  border-radius: 999px;
+  padding: 4px 8px;
 }
 
 .cell {

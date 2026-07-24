@@ -6,6 +6,9 @@ function buildGrid() {
   grid.innerHTML = '';
 
   for (let r = 0; r < ROWS; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+
     for (let c = 0; c < COLS; c++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
@@ -16,8 +19,10 @@ function buildGrid() {
         cell.appendChild(dot);
       }
 
-      grid.appendChild(cell);
+      row.appendChild(cell);
     }
+
+    grid.appendChild(row);
   }
 }
 
