@@ -17,6 +17,102 @@ const BAR_WIDTH  = 5;
 const hasDot   = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 const rowColor = Array(ROWS).fill('blue');
 
+// --- Matrix generation (GF(2)) ---
+
+function rankGF2(matrix) {
+  const m = matrix.map(row => row.slice());
+  let rank = 0;
+  let pivotRow = 0;
+  for (let col = 0; col < COLS && pivotRow < ROWS; col++) {
+    let found = -1;
+    for (let r = pivotRow; r < ROWS; r++) {
+      if (m[r][col]) { found = r; break; }
+    }
+    if (found === -1) continue;
+    [m[pivotRow], m[found]] = [m[found], m[pivotRow]];
+    for (let r = 0; r < ROWS; r++) {
+      if (r !== pivotRow && m[r][col]) {
+        for (let c = 0; c < COLS; c++) m[r][c] ^= m[pivotRow][c];
+      }
+    }
+    rank++;
+    pivotRow++;
+  }
+  return rank;
+}
+
+function nullSpaceGF2(matrix) {
+  const m = matrix.map(row => row.slice());
+  const pivotCols = [];
+  let pivotRow = 0;
+  for (let col = 0; col < COLS && pivotRow < ROWS; col++) {
+    let found = -1;
+    for (let r = pivotRow; r < ROWS; r++) if (m[r][col]) { found = r; break; }
+    if (found === -1) continue;
+    [m[pivotRow], m[found]] = [m[found], m[pivotRow]];
+    for (let r = 0; r < ROWS; r++) {
+      if (r !== pivotRow && m[r][col])
+        for (let c = 0; c < COLS; c++) m[r][c] ^= m[pivotRow][c];
+    }
+    pivotCols.push(col);
+    pivotRow++;
+  }
+  const freeCols = Array.from({ length: COLS }, (_, i) => i).filter(c => !pivotCols.includes(c));
+  return freeCols.map(fc => {
+    const v = Array(COLS).fill(0);
+    v[fc] = 1;
+    pivotCols.forEach((pc, i) => { v[pc] = m[i][fc]; });
+    return v;
+  });
+}
+
+// Rows a and b are connected if they share a 1 in some column.
+// BAD = the union of all null-vector supports is disconnected under row connectivity.
+// This is basis-independent and catches empty-row cases (isolated nodes).
+function isBadMatrix(M, leftNullVecs) {
+  const inSupport = Array(ROWS).fill(false);
+  for (const v of leftNullVecs) v.forEach((bit, i) => { if (bit) inSupport[i] = true; });
+  const S = Array.from({ length: ROWS }, (_, i) => i).filter(i => inSupport[i]);
+  if (S.length === 0) return true;
+
+  const adj = new Map(S.map(r => [r, []]));
+  for (let c = 0; c < COLS; c++) {
+    const ones = S.filter(r => M[r][c] === 1);
+    for (let a = 0; a < ones.length; a++)
+      for (let b = a + 1; b < ones.length; b++) {
+        adj.get(ones[a]).push(ones[b]);
+        adj.get(ones[b]).push(ones[a]);
+      }
+  }
+
+  const visited = new Set([S[0]]);
+  const queue = [S[0]];
+  while (queue.length) {
+    const r = queue.shift();
+    for (const nb of adj.get(r)) if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+  }
+  return S.some(r => !visited.has(r));
+}
+
+function generateMatrix() {
+  while (true) {
+    const M = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    for (let r = 0; r < ROWS - 1; r++)
+      for (let c = 0; c < COLS; c++)
+        M[r][c] = Math.random() < 0.5 ? 1 : 0;
+    // Checksum row: ensures each column has even sum
+    for (let c = 0; c < COLS; c++) {
+      let xor = 0;
+      for (let r = 0; r < ROWS - 1; r++) xor ^= M[r][c];
+      M[ROWS - 1][c] = xor;
+    }
+    if (rankGF2(M) !== COLS - 2) continue;  // null space dim must be 2
+    const Mt = M[0].map((_, c) => M.map(row => row[c]));
+    const leftNull = nullSpaceGF2(Mt);
+    if (!isBadMatrix(M, leftNull)) return M;
+  }
+}
+
 function dotCx(c) { return ROW_PAD_H + c * CELL + CELL / 2; }
 function dotCy(r) { return r * STRIDE + ROW_PAD_V + CELL / 2; }
 
@@ -91,9 +187,20 @@ function buildGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
 
+  const M = generateMatrix();
+  const Mt = M[0].map((_, c) => M.map(row => row[c]));
+  const leftNullVecs = nullSpaceGF2(Mt);
+
+  if (new URLSearchParams(window.location.search).get('debug') === 'true') {
+    let dbg = document.getElementById('debug');
+    if (!dbg) { dbg = document.createElement('div'); dbg.id = 'debug'; document.body.appendChild(dbg); }
+    dbg.innerHTML = '<strong>Left null space (GF(2)) — vM = 0:</strong><br>' +
+      leftNullVecs.map((v, i) => `v${i+1} = [${v.join(', ')}]`).join('<br>');
+  }
+
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      hasDot[r][c] = Math.random() < 0.5;
+      hasDot[r][c] = M[r][c] === 1;
     }
 
     const row = document.createElement('div');
