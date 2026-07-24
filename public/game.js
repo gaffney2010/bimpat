@@ -183,9 +183,51 @@ function renderBars() {
   }
 }
 
+function flashElements(elements) {
+  elements.forEach(el => {
+    el.classList.remove('flashing');
+    void el.offsetWidth; // force reflow so animation restarts
+    el.classList.add('flashing');
+    el.addEventListener('animationend', () => el.classList.remove('flashing'), { once: true });
+  });
+}
+
+function getUnpairedDotElements() {
+  const paired = new Set(
+    computeAllPairs().flatMap(({ r1, r2, col }) => [`${r1},${col}`, `${r2},${col}`])
+  );
+  const rowEls = Array.from(document.querySelectorAll('#grid .row'));
+  const unpaired = [];
+  for (let r = 0; r < ROWS; r++) {
+    const cells = rowEls[r].querySelectorAll('.cell');
+    for (let c = 0; c < COLS; c++) {
+      if (hasDot[r][c] && !paired.has(`${r},${c}`))
+        unpaired.push(cells[c].querySelector('.dot'));
+    }
+  }
+  return unpaired;
+}
+
+function handleSubmit() {
+  const blueCount = rowColor.filter(c => c === 'blue').length;
+  const redCount  = ROWS - blueCount;
+
+  if (blueCount === 0) { flashElements([document.getElementById('blue-counter')]); return; }
+  if (redCount  === 0) { flashElements([document.getElementById('red-counter')]);  return; }
+
+  const unpaired = getUnpairedDotElements();
+  if (unpaired.length > 0) { flashElements(unpaired); return; }
+
+  document.getElementById('submit-btn').style.display = 'none';
+  document.getElementById('congrats').style.display   = 'block';
+}
+
 function buildGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
+  rowColor.fill('blue');
+  document.getElementById('submit-btn').style.display = 'inline-block';
+  document.getElementById('congrats').style.display   = 'none';
 
   const M = generateMatrix();
   const Mt = M[0].map((_, c) => M.map(row => row[c]));
@@ -238,3 +280,5 @@ function buildGrid() {
 }
 
 buildGrid();
+document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+document.getElementById('new-game-btn').addEventListener('click', buildGrid);
