@@ -8,6 +8,7 @@ function buildGrid() {
   for (let r = 0; r < ROWS; r++) {
     const row = document.createElement('div');
     row.className = 'row';
+    row.addEventListener('click', () => row.classList.toggle('selected'));
 
     for (let c = 0; c < COLS; c++) {
       const cell = document.createElement('div');
