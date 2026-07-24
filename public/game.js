@@ -60,6 +60,12 @@ function computeAllPairs() {
   return all;
 }
 
+function updateCounters() {
+  const blue = rowColor.filter(c => c === 'blue').length;
+  document.getElementById('blue-count').textContent = blue;
+  document.getElementById('red-count').textContent = ROWS - blue;
+}
+
 function renderBars() {
   const svg = document.getElementById('bars-svg');
   while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -96,6 +102,7 @@ function buildGrid() {
       rowColor[r] = rowColor[r] === 'blue' ? 'red' : 'blue';
       row.classList.toggle('selected');
       renderBars();
+      updateCounters();
     });
 
     for (let c = 0; c < COLS; c++) {
@@ -120,6 +127,7 @@ function buildGrid() {
   grid.appendChild(svg);
 
   renderBars();
+  updateCounters();
 }
 
 buildGrid();
