@@ -70,6 +70,10 @@ function nullSpaceGF2(matrix) {
 // BAD = the union of all null-vector supports is disconnected under row connectivity.
 // This is basis-independent and catches empty-row cases (isolated nodes).
 function isBadMatrix(M, leftNullVecs) {
+  for (let a = 0; a < ROWS; a++)
+    for (let b = a + 1; b < ROWS; b++)
+      if (M[a].every((v, c) => v === M[b][c])) return true;
+
   const inSupport = Array(ROWS).fill(false);
   for (const v of leftNullVecs) v.forEach((bit, i) => { if (bit) inSupport[i] = true; });
   const S = Array.from({ length: ROWS }, (_, i) => i).filter(i => inSupport[i]);
