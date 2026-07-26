@@ -1,5 +1,6 @@
-const ROWS = 6;
-const COLS = 6;
+const SIZE = Math.max(3, Math.min(12, parseInt(new URLSearchParams(window.location.search).get('size') || '6', 10)));
+const ROWS = SIZE;
+const COLS = SIZE;
 
 // Must match CSS values
 const CELL     = 48;
